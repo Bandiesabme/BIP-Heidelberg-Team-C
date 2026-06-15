@@ -1,0 +1,21 @@
+# === Python Junk ===
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+venv/
+.venv/
+env/
+
+# === Code Editors & IDEs ===
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# === OS Garbage ===
+.DS_Store
+Thumbs.db

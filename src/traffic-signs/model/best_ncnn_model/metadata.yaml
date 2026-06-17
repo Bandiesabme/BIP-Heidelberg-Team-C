@@ -1,0 +1,21 @@
+description: Ultralytics best model trained on picarx-traffic-signs-1\data.yaml
+author: Ultralytics
+date: '2026-06-17T17:09:19.973492'
+version: 8.4.70
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: left-sign
+  1: right-sign
+  2: stop-sign
+args:
+  batch: 1
+  half: false
+channels: 3
+end2end: false

@@ -1,0 +1,18 @@
+# Core
+opencv-python-headless  # OpenCV without GUI (lighter for Pi)
+numpy                   # Array operations
+
+# Sign Detection (choose one)
+ultralytics             # YOLOv8/YOLO11 (includes NCNN export)
+# OR
+# tflite-runtime        # If using TFLite instead of NCNN
+
+# Voice Commands
+vosk                    # Offline speech recognition
+sounddevice             # Microphone input
+
+# Utilities
+Pillow                  # Image handling
+
+# NOTE: 'picarx' is pre-installed on the SunFounder Pi image.
+# Install it separately if needed: pip install picarx

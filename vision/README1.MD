@@ -32,7 +32,7 @@ result = detector.detect(frame_bgr)
 result.steering_error   # -1.0 (full left) ... 0.0 (centered) ... 1.0 (full right)
 result.lane_found       # False if no line was found at all - you need a fallback for this case
 ```
-
+```
 That's the whole interface. `result` also has `left_line_found`,
 `right_line_found`, and `debug_image`, these are mainly useful for
 debugging/logging, not required for driving.

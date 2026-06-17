@@ -86,12 +86,12 @@ def sign_detection_process(
             with frame_lock:
                 frame = shared_frame.copy()
 
-            # Preprocess frame for NCNN. We use PIXEL_BGR2BGR because the model was
+            # Preprocess frame for NCNN. We use PIXEL_BGR because the model was
             # accidentally trained on BGR images (swapped colors) due to how the
             # dataset was collected. This ensures the model sees the expected colors.
             mat_in = ncnn.Mat.from_pixels_resize(
                 frame, 
-                ncnn.Mat.PixelType.PIXEL_BGR2BGR, 
+                ncnn.Mat.PixelType.PIXEL_BGR, 
                 frame.shape[1], 
                 frame.shape[0], 
                 320,  # Highly recommend 320x320 on Pi 4 for 15+ FPS

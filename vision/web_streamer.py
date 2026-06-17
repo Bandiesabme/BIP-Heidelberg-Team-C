@@ -749,7 +749,7 @@ def standalone_inference_loop():
             if has_ncnn and net is not None:
                 mat_in = ncnn.Mat.from_pixels_resize(
                     frame, 
-                    ncnn.Mat.PixelType.PIXEL_BGR2BGR, 
+                    ncnn.Mat.PixelType.PIXEL_BGR, 
                     frame.shape[1], 
                     frame.shape[0], 
                     320, 

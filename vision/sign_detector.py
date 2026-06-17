@@ -25,11 +25,22 @@ def sign_detection_process(
     """
     import numpy as np
     import cv2
-    import ncnn
     import os
     import time
     from multiprocessing import shared_memory
     from contracts import SignType
+
+    # Try importing ncnn and handle missing library gracefully
+    try:
+        import ncnn
+    except ImportError:
+        print("⚠️ [SignDetect] ERROR: 'ncnn' python package is not installed.")
+        print("    Please run: pip install ncnn")
+        # Keep process alive so orchestrator doesn't crash
+        while system_running.value:
+            time.sleep(0.5)
+        shm.close()
+        return
 
     TARGET_FPS = 15
     LOOP_INTERVAL = 1.0 / TARGET_FPS

@@ -34,7 +34,11 @@ def lane_detection_process(
         (frame_height, frame_width, 3), dtype=np.uint8, buffer=shm.buf
     )
 
-    # Use Picamera2 to grab frames on this OS
+    import time
+
+    # Use Picamera2 to grab frames on this OS, fall back to OpenCV VideoCapture if not available
+    picam2 = None
+    cap = None
     try:
         from picamera2 import Picamera2
         picam2 = Picamera2()
@@ -42,15 +46,28 @@ def lane_detection_process(
             main={"format": "RGB888", "size": (frame_width, frame_height)}
         ))
         picam2.start()
+        print("📷 [LaneDetect] Picamera2 initialized successfully.")
     except Exception as e:
-        print(f"❌ Failed to initialize Picamera2: {e}")
-        return
+        print(f"⚠️ [LaneDetect] Picamera2 not available, trying OpenCV VideoCapture: {e}")
+        cap = cv2.VideoCapture(0)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
+        if not cap.isOpened():
+            print("❌ [LaneDetect] ERROR: Could not open any camera resource.")
+            shm.close()
+            return
 
     while system_running.value:
         try:
-            # capture_array returns RGB. Convert to BGR for OpenCV
-            frame_rgb = picam2.capture_array()
-            frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+            if picam2:
+                # capture_array returns RGB. Convert to BGR for OpenCV
+                frame_rgb = picam2.capture_array()
+                frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+            else:
+                ret, frame = cap.read()
+                if not ret:
+                    time.sleep(0.01)
+                    continue
         except Exception:
             continue
 
@@ -79,5 +96,8 @@ def lane_detection_process(
         # lane_curvature.value = curvature
         # lane_detected.value = detected
 
-    picam2.stop()
+    if picam2:
+        picam2.stop()
+    if cap:
+        cap.release()
     shm.close()  # Detach from shared memory (main.py owns unlink)

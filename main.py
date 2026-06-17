@@ -71,9 +71,35 @@ def main():
         w.start()
 
     # ── Initialize Hardware & Brain ────────────────────────
-    # pyrefly: ignore [missing-import]
-    from picarx import Picarx
-    px = Picarx()
+    try:
+        # pyrefly: ignore [missing-import]
+        from picarx import Picarx
+        px = Picarx()
+        print("🤖 [Hardware] Physical PiCar-X hardware initialized.")
+    except (ImportError, ModuleNotFoundError):
+        class MockPicarx:
+            def __init__(self):
+                print("🤖 [Hardware] WARNING: 'picarx' library not found. Running in MOCK hardware mode.")
+                self.ultrasonic = self.MockUltrasonic()
+            
+            class MockUltrasonic:
+                def read(self):
+                    return 999.0  # Return clear path distance
+            
+            def set_dir_servo_angle(self, angle):
+                pass
+            
+            def forward(self, speed):
+                pass
+            
+            def backward(self, speed):
+                pass
+            
+            def stop(self):
+                pass
+        
+        px = MockPicarx()
+
     brain = SubsumptionBrain()
     current_state = SystemState.IDLE
     current_speed = 0.0

@@ -653,29 +653,42 @@ def draw_detection_overlay(frame, best_box, best_class, best_conf):
 
 
 def standalone_inference_loop():
-    """Producer Thread: direct camera capture and YOLO inference."""
-    import ncnn
+    """Producer Thread: direct camera capture and optional YOLO inference."""
     global state
 
     print("[WebStreamer] Starting Standalone Camera & Inference loop...")
     
-    # Load model
-    model_dir = os.path.join(os.path.dirname(__file__), "models", "yolo")
-    param_path = os.path.join(model_dir, "model.ncnn.param")
-    bin_path = os.path.join(model_dir, "model.ncnn.bin")
-    
-    if not os.path.exists(param_path) or not os.path.exists(bin_path):
-        print(f"[WebStreamer] ERROR: NCNN Model files not found in {model_dir}")
-        with state_lock:
-            state["running"] = False
-        return
+    # Try importing ncnn and handle missing package gracefully
+    try:
+        import ncnn
+        has_ncnn = True
+    except ImportError:
+        print("⚠️ [WebStreamer] WARNING: 'ncnn' python package is not installed.")
+        print("    Live streaming will still work, but sign detection overlays are disabled.")
+        print("    To enable sign detection overlays, run: pip install ncnn")
+        has_ncnn = False
 
-    net = ncnn.Net()
-    net.opt.use_vulkan_compute = False
-    net.opt.num_threads = 2
-    net.load_param(param_path)
-    net.load_model(bin_path)
-    print("[WebStreamer] NCNN Model loaded successfully.")
+    net = None
+    if has_ncnn:
+        # Load model
+        model_dir = os.path.join(os.path.dirname(__file__), "models", "yolo")
+        param_path = os.path.join(model_dir, "model.ncnn.param")
+        bin_path = os.path.join(model_dir, "model.ncnn.bin")
+        
+        if not os.path.exists(param_path) or not os.path.exists(bin_path):
+            print(f"[WebStreamer] WARNING: NCNN Model files not found in {model_dir}. Bypassing detection.")
+            has_ncnn = False
+        else:
+            try:
+                net = ncnn.Net()
+                net.opt.use_vulkan_compute = False
+                net.opt.num_threads = 2
+                net.load_param(param_path)
+                net.load_model(bin_path)
+                print("[WebStreamer] NCNN Model loaded successfully.")
+            except Exception as e:
+                print(f"[WebStreamer] Failed to load NCNN network: {e}. Bypassing detection.")
+                has_ncnn = False
 
     # Initialize Camera
     cap = None
@@ -728,57 +741,59 @@ def standalone_inference_loop():
                     time.sleep(0.01)
                     continue
 
-            # 2. Run NCNN Inference
-            mat_in = ncnn.Mat.from_pixels_resize(
-                frame, 
-                ncnn.Mat.PixelType.PIXEL_BGR2BGR, 
-                frame.shape[1], 
-                frame.shape[0], 
-                320, 
-                320
-            )
-            
-            # Normalize: divide by 255
-            mean_vals = [0.0, 0.0, 0.0]
-            norm_vals = [1/255.0, 1/255.0, 1/255.0]
-            mat_in.substract_mean_normalize(mean_vals, norm_vals)
-
-            inf_start = time.monotonic()
-            ex = net.create_extractor()
-            ex.input("in0", mat_in)
-            ret_code, mat_out = ex.extract("out0")
-            inf_time = (time.monotonic() - inf_start) * 1000.0
-
-            # 3. Process Detections
+            # 2. Run NCNN Inference (Only if we have ncnn and model successfully loaded)
             det_class_name = "NONE"
             det_conf = 0.0
-            
-            if ret_code == 0 and mat_out:
-                out_np = np.squeeze(np.array(mat_out))
+            inf_time = 0.0
+
+            if has_ncnn and net is not None:
+                mat_in = ncnn.Mat.from_pixels_resize(
+                    frame, 
+                    ncnn.Mat.PixelType.PIXEL_BGR2BGR, 
+                    frame.shape[1], 
+                    frame.shape[0], 
+                    320, 
+                    320
+                )
                 
-                # Reshape if flat
-                if len(out_np.shape) == 1:
-                    num_features = 7
-                    num_anchors = out_np.shape[0] // num_features
-                    out_np = out_np.reshape(num_anchors, num_features)
-                elif out_np.shape[0] == 7 and len(out_np.shape) == 2:
-                    out_np = out_np.T
+                # Normalize: divide by 255
+                mean_vals = [0.0, 0.0, 0.0]
+                norm_vals = [1/255.0, 1/255.0, 1/255.0]
+                mat_in.substract_mean_normalize(mean_vals, norm_vals)
 
-                if len(out_np.shape) == 2 and out_np.shape[1] >= 7:
-                    # Scores are columns 4 to end
-                    scores = out_np[:, 4:]
-                    max_scores = np.max(scores, axis=1)
-                    class_ids = np.argmax(scores, axis=1)
+                inf_start = time.monotonic()
+                ex = net.create_extractor()
+                ex.input("in0", mat_in)
+                ret_code, mat_out = ex.extract("out0")
+                inf_time = (time.monotonic() - inf_start) * 1000.0
+
+                # 3. Process Detections
+                if ret_code == 0 and mat_out:
+                    out_np = np.squeeze(np.array(mat_out))
                     
-                    best_idx = np.argmax(max_scores)
-                    best_conf = float(max_scores[best_idx])
-                    best_class = int(class_ids[best_idx])
+                    # Reshape if flat
+                    if len(out_np.shape) == 1:
+                        num_features = 7
+                        num_anchors = out_np.shape[0] // num_features
+                        out_np = out_np.reshape(num_anchors, num_features)
+                    elif out_np.shape[0] == 7 and len(out_np.shape) == 2:
+                        out_np = out_np.T
 
-                    if best_conf >= threshold:
-                        det_class_name = CLASS_NAMES.get(best_class, "UNKNOWN")
-                        det_conf = best_conf
-                        best_box = out_np[best_idx, :4]
-                        draw_detection_overlay(frame, best_box, best_class, best_conf)
+                    if len(out_np.shape) == 2 and out_np.shape[1] >= 7:
+                        # Scores are columns 4 to end
+                        scores = out_np[:, 4:]
+                        max_scores = np.max(scores, axis=1)
+                        class_ids = np.argmax(scores, axis=1)
+                        
+                        best_idx = np.argmax(max_scores)
+                        best_conf = float(max_scores[best_idx])
+                        best_class = int(class_ids[best_idx])
+
+                        if best_conf >= threshold:
+                            det_class_name = CLASS_NAMES.get(best_class, "UNKNOWN")
+                            det_conf = best_conf
+                            best_box = out_np[best_idx, :4]
+                            draw_detection_overlay(frame, best_box, best_class, best_conf)
 
             # 4. Measure FPS
             frame_counter += 1

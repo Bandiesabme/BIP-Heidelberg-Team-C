@@ -15,8 +15,13 @@ import time
 import json
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
 import cv2
 import numpy as np
+
+class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+    """Multi-threaded HTTP server to handle concurrent requests (streaming and stats)."""
+    daemon_threads = True
 
 # Global state dictionary for sharing between camera/inference and web server threads
 state = {
@@ -871,7 +876,7 @@ def web_streamer_process(
         return
 
     # Start HTTP Web Server
-    server = HTTPServer(('0.0.0.0', port), TelemetryHandler)
+    server = ThreadingHTTPServer(('0.0.0.0', port), TelemetryHandler)
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)
     server_thread.start()
 
@@ -983,7 +988,7 @@ if __name__ == "__main__":
         except ValueError:
             pass
 
-    server = HTTPServer(('0.0.0.0', port), TelemetryHandler)
+    server = ThreadingHTTPServer(('0.0.0.0', port), TelemetryHandler)
     print(f"\n========================================================")
     print(f"🚀 PiCar-X Vision Server starting in STANDALONE mode")
     print(f"   Address: http://localhost:{port}")

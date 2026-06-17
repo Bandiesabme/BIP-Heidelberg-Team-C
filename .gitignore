@@ -19,3 +19,12 @@ env/
 # === OS Garbage ===
 .DS_Store
 Thumbs.db
+/dataset
+
+# traffic signs detections
+runs/
+picarx-traffic-signs-1/
+yolov8n.pt
+yolo26n.pt
+__pycache__/
+*.cache

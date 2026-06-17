@@ -3,7 +3,7 @@ opencv-python-headless  # OpenCV without GUI (lighter for Pi)
 numpy                   # Array operations
 
 # Sign Detection (choose one)
-ultralytics             # YOLOv8/YOLO11 (includes NCNN export)
+ncnn                    # NCNN python bindings for YOLO inference (lighter than ultralytics)
 # OR
 # tflite-runtime        # If using TFLite instead of NCNN
 

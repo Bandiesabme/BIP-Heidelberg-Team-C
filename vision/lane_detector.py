@@ -34,13 +34,24 @@ def lane_detection_process(
         (frame_height, frame_width, 3), dtype=np.uint8, buffer=shm.buf
     )
 
-    cap = cv2.VideoCapture(0)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
+    # Use Picamera2 to grab frames on this OS
+    try:
+        from picamera2 import Picamera2
+        picam2 = Picamera2()
+        picam2.configure(picam2.create_preview_configuration(
+            main={"format": "RGB888", "size": (frame_width, frame_height)}
+        ))
+        picam2.start()
+    except Exception as e:
+        print(f"❌ Failed to initialize Picamera2: {e}")
+        return
 
     while system_running.value:
-        ret, frame = cap.read()
-        if not ret:
+        try:
+            # capture_array returns RGB. Convert to BGR for OpenCV
+            frame_rgb = picam2.capture_array()
+            frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+        except Exception:
             continue
 
         # Share frame with P2 via SharedMemory (~0.5ms zero-copy)
@@ -68,5 +79,5 @@ def lane_detection_process(
         # lane_curvature.value = curvature
         # lane_detected.value = detected
 
-    cap.release()
+    picam2.stop()
     shm.close()  # Detach from shared memory (main.py owns unlink)

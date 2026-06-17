@@ -14,6 +14,7 @@ from contracts import SensorState, ActionCommand, SystemState
 from brain.subsumption import SubsumptionBrain
 from vision.lane_detector import lane_detection_process
 from vision.sign_detector import sign_detection_process
+from vision.web_streamer import web_streamer_process
 from sensors.voice import voice_listener
 from sensors.ultrasonic import ultrasonic_reader
 
@@ -57,7 +58,13 @@ def main():
             args=(voice_command, system_running),
             daemon=True, name="P3-Voice"
         ),
-        # Note: ultrasonic handled in main loop or separate thread
+        mp.Process(
+            target=web_streamer_process,
+            args=(system_running, shm.name, frame_lock, FRAME_W, FRAME_H,
+                  sign_id, sign_confidence, lane_offset, lane_curvature,
+                  lane_detected, obstacle_dist, voice_command, 5000),
+            daemon=True, name="P5-WebStream"
+        )
     ]
 
     for w in workers:

@@ -24,70 +24,50 @@ To prevent code overrides and messy merge conflicts, we use a strict **3-tier br
 
 
 
-   # PiCar-X Autonomous Challenge: Software Architecture Blueprint
-**SRH University of Applied Sciences Heidelberg — BIP Challenge**
-
-This document provides a highly modular, multi-threaded software architecture blueprint for a 6-person team to implement a robust autonomous lane-following and traffic-aware robot car within a strict 48-hour deadline.
-
----
-
-## 1. System Architecture Overview
-
-To eliminate development bottlenecks and merge conflicts, the system uses an asynchronous **Threaded Pipeline Pattern** decoupled by thread-safe communication queues (`queue.Queue`). Each major functional unit runs as a standalone background thread.
-
-```text
-                         +------------------------+
-                         |      Voice Control     |
-                         |     (Bonus Module)     |
-                         +-----------+------------+
-                                     | (voice_queue)
-                                     v
-+------------------+     +-----------+------------+     +-------------------+
-|  Lane Detection  |---->|                        |<----+  Obstacle Sensor  |
-|   (lane_queue)   |     |      Central Brain     |     |  (obstacle_queue) |
-+------------------+     |     (State Machine)    |     +-------------------+
-                         |                        |
-+------------------+     +-----------+------------+
-| Sign Recognition |---->|           |            |
-|   (sign_queue)   |     +-----------+------------+
-+------------------+                 | (motor_queue)
-                                     v
-                         +-----------+------------+
-                         |     Hardware Drive     |
-                         |   (Low-Level Actuation)|
-                         +------------------------+
+### 3.2 Process Layout
 
 ```
-### Communication Protocols & Data Contracts
-Threads communicate via lightweight, non-blocking Python primitives inside thread-safe FIFO queues to prevent CPU starvation and race conditions:
-
-| Data Flow Channel | Producer Module | Consumer Module | Data Format / Payload Schema |
-| :--- | :--- | :--- | :--- |
-| `lane_queue` | Lane Detection | Central Brain | `float`: Normalized lateral error index between `-1.0` (far left) and `+1.0` (far right). `0.0` represents perfect center alignment. |
-| `sign_queue` | Sign Recognition | Central Brain | `str`: Exact enum-string match: `"LEFT"`, `"RIGHT"`, `"STOP"`, or `"NONE"`. |
-| `obstacle_queue` | Obstacle Sensor | Central Brain | `bool`: Emergency flag. `True` if a physical object is detected within critical stopping envelope ($<20\text{ cm}$). |
-| `voice_queue` | Voice Control | Central Brain | `str`: Command token parsed from microphone: `"start"`, `"stop"`, `"pause"`, `"continue"`. |
-| `motor_queue` | Central Brain | Hardware Drive | `dict`: Explicit target actuation payload: `{"speed": int [-100 to 100], "steering": int [-40 to 40]}`. |
-
-
----
-## 2. Directory Structure & Team Allocation
-
-This file structure provides strict ownership boundaries so that all 6 team members can code concurrently in isolated files without breaking the primary orchestration loop.
-
-```text
-picarx_project/
-│
-├── main.py                 # Systems Orchestrator & Thread Monitor (Integrated Framework)
-├── config.py               # Shared global thresholds, pins, speeds, and PID tunings
-│
-└── modules/
-    ├── __init__.py         # Package initialization namespaces
-    ├── hardware_drive.py   # [Person 1] Low-level Picarx motor/servo abstraction
-    ├── lane_detection.py   # [Person 2] OpenCV Color/Contour Lane Processing
-    ├── sign_recognition.py # [Person 3] OpenCV Pattern/Color Traffic Sign Classifier
-    ├── obstacle_sensor.py  # [Person 4] Ultrasonic HC-SR04 Hardware Polling
-    ├── voice_control.py    # [Person 5] Bonus: Speech Recognition & Command Engine
-    └── brain.py            # [Person 6] Central Finite State Machine (FSM) & Control System
-
-```
+┌─────────────────────────────────────────────────────────┐
+│                    RASPBERRY PI 4                       │
+│                                                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │  PROCESS 1   │  │  PROCESS 2   │  │  PROCESS 3   │  │
+│  │  Core 0      │  │  Core 1      │  │  Core 2      │  │
+│  │              │  │              │  │              │  │
+│  │  Camera +    │  │  YOLO Sign   │  │  Voice       │  │
+│  │  OpenCV      │  │  Detection   │  │  Commands    │  │
+│  │  Lane        │  │              │  │  +           │  │
+│  │  Detection   │  │  Runs on     │  │  Ultrasonic  │  │
+│  │              │  │  every Nth   │  │  Sensor      │  │
+│  │  ~30 FPS     │  │  frame       │  │              │  │
+│  │              │  │  ~10-15 FPS  │  │  ~10 Hz      │  │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  │
+│         │                 │                 │           │
+│         ▼                 ▼                 ▼           │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │              SHARED MEMORY (atomic)             │    │
+│  │  multiprocessing.Value (ctypes)                 │    │
+│  │                                                 │    │
+│  │  lane_offset    : c_double  (pixels from center)│    │
+│  │  lane_curvature : c_double  (curve radius)      │    │
+│  │  lane_detected  : c_bool                        │    │
+│  │  sign_id        : c_int     (0=none,1=L,2=R,3=S)│   │
+│  │  sign_confidence: c_double                      │    │
+│  │  obstacle_dist  : c_double  (cm)                │    │
+│  │  voice_command  : c_int     (0=none,1-4=cmds)   │    │
+│  │  system_running : c_bool    (kill switch)       │    │
+│  └────────────────────┬────────────────────────────┘    │
+│                       │                                 │
+│                       ▼                                 │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │              PROCESS 4 — Core 3                 │    │
+│  │              ORCHESTRATOR (main.py)              │    │
+│  │                                                 │    │
+│  │  1. Read shared memory → build SensorState DTO  │    │
+│  │  2. Pass DTO to Brain.decide_next_action()      │    │
+│  │  3. Brain returns ActionCommand DTO             │    │
+│  │  4. Execute ActionCommand via picarx            │    │
+│  │  5. Sleep to maintain 30 Hz loop                │    │
+│  └─────────────────────────────────────────────────┘    │
+│                                                         │
+└─────────────────────────────────────────────────────────┘

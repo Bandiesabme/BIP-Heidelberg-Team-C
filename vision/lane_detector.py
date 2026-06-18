@@ -31,12 +31,9 @@ def lane_detection_process(
     
     # Configure the camera to output BGR (what OpenCV and your YOLO model expect)
     # at the requested resolution
-    config = picam2.create_video_configuration({
-        "main": {
-            "format": "BGR888", 
-            "size": (frame_width, frame_height)
-        }
-    })
+     config = picam2.create_video_configuration(
+        main={"format": "BGR888", "size": (frame_width, frame_height)}
+    )
     picam2.configure(config)
     picam2.start()
 

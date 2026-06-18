@@ -33,6 +33,7 @@ def generate_video_feed():
         with _frame_lock:
             frame = shared_frame.copy()
             
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         # Encode as JPEG
         ret, buffer = cv2.imencode('.jpg', frame)
         if not ret:

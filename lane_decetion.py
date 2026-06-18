@@ -37,7 +37,7 @@ class LaneDetector:
         frame_width: int = 640,
         frame_height: int = 480,
         white_thresh: int = 170,
-        roi_top_ratio: float = 0.54,
+        roi_top_ratio: float = 0.14,
         n_windows: int = 8,
         window_margin: int = 70,
         min_pixels: int = 20,

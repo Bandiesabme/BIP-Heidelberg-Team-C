@@ -2,10 +2,10 @@ import time
 
 # Settings adjustable in real-time
 autodrive_enabled = False
-target_speed = 8
+target_speed = 2
 max_steering_angle = 25
 camera_pan = 0
-camera_tilt = 0
+camera_tilt = -2
 turn_frames = 30  # Number of frames to force a turn
 
 # Steering smoothing / PD tuning (adjust on the track)

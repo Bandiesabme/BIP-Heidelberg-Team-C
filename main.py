@@ -14,10 +14,7 @@ from contracts import SensorState, ActionCommand, SystemState
 from brain.subsumption import SubsumptionBrain
 from vision.lane_detector import lane_detection_process
 from vision.sign_detector import sign_detection_process
-from sensors.voice import voice_listener
-from sensors.ultrasonic import ultrasonic_reader
-from web_server import web_server_process
-
+from web_server import web_server_process  # Ensure this is correctly imported
 
 TICK_RATE = 30  # Hz
 TICK_INTERVAL = 1.0 / TICK_RATE
@@ -34,10 +31,11 @@ def main():
     voice_command   = mp.Value(c_int, 0)
     system_running  = mp.Value(c_bool, True)
 
+    # Telemetry for the Web Dashboard
     current_speed_shm    = mp.Value(c_double, 0.0)
     current_steering_shm = mp.Value(c_double, 0.0)
 
-    # Frame sharing via SharedMemory (zero-copy numpy, ~0.5ms vs ~100ms with Array)
+    # Frame sharing via SharedMemory (zero-copy numpy)
     FRAME_W, FRAME_H = 640, 480
     shm = shared_memory.SharedMemory(create=True, size=FRAME_W * FRAME_H * 3)
     frame_lock = mp.Lock()
@@ -56,18 +54,19 @@ def main():
                   shm.name, frame_lock, FRAME_W, FRAME_H),
             daemon=True, name="P2-SignDetect"
         ),
+        
         # --- TEMPORARILY DISABLED VOICE COMMANDS ---
         # mp.Process(
         #     target=voice_listener,
         #     args=(voice_command, system_running),
         #     daemon=True, name="P3-Voice"
-        # ),),
+        # ),
+        
         mp.Process(
             target=web_server_process,
             args=(current_speed_shm, current_steering_shm, sign_id, shm.name, frame_lock, FRAME_W, FRAME_H),
             daemon=True, name="P5-WebServer"
-        )
-        # Note: ultrasonic handled in main loop or separate thread
+        ),
     ]
 
     for w in workers:
@@ -89,10 +88,9 @@ def main():
         while system_running.value:
             tick_start = time.monotonic()
 
-            # 1. Read ultrasonic (~10Hz — each read can block up to 30ms,
-            #    so don't call every tick or it eats the 33ms budget)
+            # 1. Read ultrasonic (~10Hz)
             now = time.monotonic()
-            if now - last_ultrasonic_read >= 0.1:  # 10Hz
+            if now - last_ultrasonic_read >= 0.1:  
                 try:
                     dist = px.ultrasonic.read()
                     if dist is not None and dist > 0:
@@ -132,17 +130,18 @@ def main():
             current_speed = action.speed
             current_steering = action.steering_angle
 
+            # 6. Update Web Server Telemetry
             current_speed_shm.value = action.speed
             current_steering_shm.value = action.steering_angle
 
-            # 6. Consume acknowledged signals
+            # 7. Consume acknowledged signals
             if action.sign_consumed:
                 sign_id.value = 0
                 sign_confidence.value = 0.0
             if action.voice_consumed:
                 voice_command.value = 0
 
-            # 7. Sleep to maintain tick rate
+            # 8. Sleep to maintain tick rate
             elapsed = time.monotonic() - tick_start
             sleep_time = TICK_INTERVAL - elapsed
             if sleep_time > 0:
@@ -157,7 +156,7 @@ def main():
         for w in workers:
             w.join(timeout=2.0)
         shm.close()
-        shm.unlink()  # Free the shared memory block (only the creator calls unlink)
+        shm.unlink()  
         print("[Orchestrator] All processes terminated. Goodbye.")
 
 

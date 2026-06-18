@@ -16,3 +16,6 @@ Pillow                  # Image handling
 
 # NOTE: 'picarx' is pre-installed on the SunFounder Pi image.
 # Install it separately if needed: pip install picarx
+
+
+ncnn

@@ -16,7 +16,15 @@ import ncnn
 # Absolute path fallback to ensure the worker always finds the contracts
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    
+# Build absolute paths dynamically
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+param_path = os.path.join(BASE_DIR, "vision", "models", "model.ncnn.param")
+bin_path = os.path.join(BASE_DIR, "vision", "models", "model.ncnn.bin")
+    
+# Load using the absolute paths
+net.load_param(param_path)
+net.load_model(bin_path)
 from contracts import SignType
 
 

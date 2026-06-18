@@ -41,7 +41,7 @@ def lane_detection_process(
     while system_running.value:
         # Grab the latest frame directly as a numpy array
         try:
-            frame = picam2.capture_array("main")
+            frame = picam2.capture_array("main", format="bgr888")
         except Exception:
             continue
 

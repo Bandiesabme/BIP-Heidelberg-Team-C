@@ -19,6 +19,7 @@ def lane_detection_process(
     from multiprocessing import shared_memory
     
     # Import the modern PiCamera2 library
+    # pyrefly: ignore [missing-import]
     from picamera2 import Picamera2
 
     shm = shared_memory.SharedMemory(name=shm_name)
@@ -31,7 +32,7 @@ def lane_detection_process(
     
     # Configure the camera to output BGR (what OpenCV and your YOLO model expect)
     # at the requested resolution
-     config = picam2.create_video_configuration(
+    config = picam2.create_video_configuration(
         main={"format": "BGR888", "size": (frame_width, frame_height)}
     )
     picam2.configure(config)

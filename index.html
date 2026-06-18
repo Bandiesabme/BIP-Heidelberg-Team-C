@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PiCar-X Autodrive Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="brand-section">
+                <h1>PiCar-X Autodrive Control Center</h1>
+                <p>Telemetry Dashboard & Real-Time Optimization System</p>
+            </div>
+            <div class="autodrive-toggle-container">
+                <span class="toggle-label" id="mode-label">AUTODRIVE OFF</span>
+                <label class="switch">
+                    <input type="checkbox" id="autodrive-checkbox" onchange="toggleAutodrive(this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </header>
+
+        <div class="dashboard-grid">
+            <div class="card">
+                <div class="card-title">
+                    <span>Live Video Streams</span>
+                    <span style="font-size: 12px; color: var(--text-muted);">640x480 resolution</span>
+                </div>
+                <div class="streams-container">
+                    <div class="twin-streams">
+                        <div class="stream-wrapper">
+                            <span class="stream-label">Raw Camera Feed</span>
+                            <img src="/camera.mjpg" class="stream-image" alt="Raw stream">
+                        </div>
+                        <div class="stream-wrapper">
+                            <span class="stream-label">Lane Detection Overlay</span>
+                            <img src="/stream.mjpg" class="stream-image" alt="Processed stream">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="streams-container">
+                <div class="card">
+                    <div class="card-title">System Telemetry</div>
+                    
+                    <div class="telemetry-grid">
+                        <div class="telemetry-item">
+                            <div class="telemetry-label">Lane Status</div>
+                            <div class="telemetry-value" id="lane-status-text" style="display:flex; align-items:center;">
+                                <span class="status-dot status-inactive" id="lane-dot"></span>
+                                <span id="lane-text">Lost</span>
+                            </div>
+                        </div>
+                        <div class="telemetry-item">
+                            <div class="telemetry-label">Motor Speed</div>
+                            <div class="telemetry-value" id="speed-value">0</div>
+                        </div>
+                        <div class="telemetry-item">
+                            <div class="telemetry-label">Steering Angle</div>
+                            <div class="telemetry-value" id="angle-value">0.0°</div>
+                        </div>
+                        <div class="telemetry-item">
+                            <div class="telemetry-label">Steering Error</div>
+                            <div class="telemetry-value" id="error-value">0.00</div>
+                        </div>
+                        <div class="telemetry-item">
+                            <div class="telemetry-label">Last Sign Seen</div>
+                            <div class="telemetry-value" id="sign-detected">NONE</div>
+                        </div>
+                    </div>
+
+                    <div class="wheel-container">
+                        <svg class="steering-wheel" id="wheel-svg" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="42" stroke-width="6" />
+                            <circle cx="50" cy="50" r="10" fill="var(--primary)" />
+                            <line x1="50" y1="50" x2="50" y2="8" stroke-width="4" />
+                            <line x1="50" y1="50" x2="14" y2="68" stroke-width="4" />
+                            <line x1="50" y1="50" x2="86" y2="68" stroke-width="4" />
+                        </svg>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Steering Offset Visualizer</span>
+                            <span id="offset-side">Centered</span>
+                        </div>
+                        <div class="deviation-track">
+                            <div class="center-line"></div>
+                            <div class="deviation-bar" id="deviation-bar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Calibration & Safety Controls</div>
+
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Autodrive Speed Limit</span>
+                            <span id="speed-limit-val">8</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="speed-slider" min="1" max="30" value="8" oninput="updateParam('speed', this.value)">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Max Steering Angle</span>
+                            <span id="max-angle-val">25°</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="max-angle-slider" min="10" max="35" value="25" oninput="updateParam('max_angle', this.value)">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Turn Duration (Frames)</span>
+                            <span id="turn-frames-val">30</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="turn-frames-slider" min="10" max="100" step="1" value="30" oninput="updateParam('turn_frames', this.value)">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>White Detection Cutoff</span>
+                            <span id="white-thresh-val">170</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="white-thresh-slider" min="50" max="250" value="170" oninput="updateParam('white_thresh', this.value)">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Horizon Crop Ratio (ROI)</span>
+                            <span id="roi-ratio-val">0.54</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="roi-slider" min="0.30" max="0.80" step="0.02" value="0.54" oninput="updateParam('roi_top_ratio', this.value)">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Follow Offset (dist from line, px)</span>
+                            <span id="follow-offset-val">77</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="follow-offset-slider" min="10" max="220" step="2" value="77" oninput="updateParam('follow_offset', this.value)">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Stop Trigger Size (closeness)</span>
+                            <span id="stop-trigger-val">0.35</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="stop-trigger-slider" min="0.10" max="0.80" step="0.02" value="0.35" oninput="updateParam('stop_trigger', this.value)">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Camera Pan (Horizontal)</span>
+                            <span id="cam-pan-val">0°</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="cam-pan-slider" min="-35" max="35" value="0" oninput="updateParam('cam_pan', this.value)">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Camera Tilt (Vertical)</span>
+                            <span id="cam-tilt-val">0°</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="cam-tilt-slider" min="-35" max="35" value="0" oninput="updateParam('cam_tilt', this.value)">
+                    </div>
+
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border);">
+                        <div class="card-title" style="font-size: 14px; margin-bottom: 10px;">Sign Color Filter HSV</div>
+                        
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Blue Hue Min (Start)</span>
+                                <span id="blue-h-min-val">100</span>
+                            </div>
+                            <input type="range" class="custom-slider" id="blue-h-min-slider" min="0" max="180" value="100" oninput="updateParam('blue_h_min', this.value)">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Blue Hue Max (End)</span>
+                                <span id="blue-h-max-val">140</span>
+                            </div>
+                            <input type="range" class="custom-slider" id="blue-h-max-slider" min="0" max="180" value="140" oninput="updateParam('blue_h_max', this.value)">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Min Saturation (Color depth)</span>
+                                <span id="sign-s-min-val">120</span>
+                            </div>
+                            <input type="range" class="custom-slider" id="sign-s-min-slider" min="0" max="255" value="120" oninput="updateParam('sign_s_min', this.value)">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Min Brightness (Value)</span>
+                                <span id="sign-v-min-val">70</span>
+                            </div>
+                            <input type="range" class="custom-slider" id="sign-v-min-slider" min="0" max="255" value="70" oninput="updateParam('sign_v_min', this.value)">
+                        </div>
+                    </div>
+
+                    <button class="e-stop-btn" onclick="emergencyStop()">EMERGENCY STOP (SPACE)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/script.js"></script>
+</body>
+</html>

@@ -16,6 +16,7 @@ from vision.lane_detector import lane_detection_process
 from vision.sign_detector import sign_detection_process
 from sensors.voice import voice_listener
 from sensors.ultrasonic import ultrasonic_reader
+from web_server import web_server_process
 
 
 TICK_RATE = 30  # Hz
@@ -32,6 +33,9 @@ def main():
     obstacle_dist   = mp.Value(c_double, 999.0)
     voice_command   = mp.Value(c_int, 0)
     system_running  = mp.Value(c_bool, True)
+
+    current_speed_shm    = mp.Value(c_double, 0.0)
+    current_steering_shm = mp.Value(c_double, 0.0)
 
     # Frame sharing via SharedMemory (zero-copy numpy, ~0.5ms vs ~100ms with Array)
     FRAME_W, FRAME_H = 640, 480
@@ -57,6 +61,11 @@ def main():
             args=(voice_command, system_running),
             daemon=True, name="P3-Voice"
         ),
+        mp.Process(
+            target=web_server_process,
+            args=(current_speed_shm, current_steering_shm, shm.name, frame_lock, FRAME_W, FRAME_H),
+            daemon=True, name="P5-WebServer"
+        )
         # Note: ultrasonic handled in main loop or separate thread
     ]
 
@@ -121,6 +130,9 @@ def main():
             current_state = action.new_state
             current_speed = action.speed
             current_steering = action.steering_angle
+
+            current_speed_shm.value = action.speed
+            current_steering_shm.value = action.steering_angle
 
             # 6. Consume acknowledged signals
             if action.sign_consumed:

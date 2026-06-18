@@ -56,11 +56,12 @@ def main():
                   shm.name, frame_lock, FRAME_W, FRAME_H),
             daemon=True, name="P2-SignDetect"
         ),
-        mp.Process(
-            target=voice_listener,
-            args=(voice_command, system_running),
-            daemon=True, name="P3-Voice"
-        ),
+        # --- TEMPORARILY DISABLED VOICE COMMANDS ---
+        # mp.Process(
+        #     target=voice_listener,
+        #     args=(voice_command, system_running),
+        #     daemon=True, name="P3-Voice"
+        # ),),
         mp.Process(
             target=web_server_process,
             args=(current_speed_shm, current_steering_shm, shm.name, frame_lock, FRAME_W, FRAME_H),

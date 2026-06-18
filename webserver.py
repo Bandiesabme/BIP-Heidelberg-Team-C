@@ -106,13 +106,6 @@ def video_feed():
 def telemetry():
     return jsonify({
         "speed": _speed.value,
-        "steering": _steering.value
-    })
-
-@app.route('/api/telemetry')
-def telemetry():
-    return jsonify({
-        "speed": _speed.value,
         "steering": _steering.value,
         "sign": _sign.value  # ADD THIS LINE
     })

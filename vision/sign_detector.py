@@ -21,10 +21,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 param_path = os.path.join(BASE_DIR, "vision", "models", "model.ncnn.param")
 bin_path = os.path.join(BASE_DIR, "vision", "models", "model.ncnn.bin")
-    
-# Load using the absolute paths
-net.load_param(param_path)
-net.load_model(bin_path)
+# from contracts import SignType
 from contracts import SignType
 
 
@@ -48,9 +45,9 @@ def sign_detection_process(
     net.opt.use_vulkan_compute = False 
     
     # Load the exported weights from the YOLO training
-    # Ensure these paths align with where you run main.py
-    net.load_param("models/yolo/best_ncnn_model/model.param")
-    net.load_model("models/yolo/best_ncnn_model/model.bin")
+    # using the dynamically generated absolute paths
+    net.load_param(param_path)
+    net.load_model(bin_path)
 
     # 2. Attach to the shared memory block written by P1
     shm = shared_memory.SharedMemory(name=shm_name)

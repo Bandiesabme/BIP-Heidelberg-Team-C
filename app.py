@@ -56,7 +56,7 @@ def generate_raw_frames():
                    b'Content-Type: image/jpeg\r\n'
                    b'Content-Length: ' + str(len(jpeg_bytes)).encode() + b'\r\n\r\n' + 
                    jpeg_bytes + b'\r\n')
-        time.sleep(0.033)  # Limits the web stream to ~30fps
+        time.sleep(0.073)  # Limits the web stream to ~30fps
 
 def generate_processed_frames():
     while True:

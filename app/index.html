@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PiCar-X Autodrive Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --border: rgba(255, 255, 255, 0.08);
+            --primary: #06b6d4;      /* Cyan */
+            --primary-glow: rgba(6, 182, 212, 0.4);
+            --accent: #8b5cf6;       /* Violet */
+            --success: #10b981;      /* Emerald */
+            --danger: #ef4444;       /* Rose */
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(30, 27, 75, 0.4) 0, transparent 50%),
+                radial-gradient(at 50% 0%, rgba(6, 182, 212, 0.1) 0, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .brand-section h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .brand-section p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .autodrive-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #374151;
+            transition: .4s;
+            border-radius: 34px;
+            border: 1px solid var(--border);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+
+        input:checked + .slider {
+            background-color: var(--success);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .toggle-label {
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1.8fr 1.2fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .streams-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .stream-wrapper {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: #000;
+            aspect-ratio: 4/3;
+        }
+
+        .stream-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .stream-label {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            backdrop-filter: blur(4px);
+            z-index: 5;
+        }
+
+        /* Twin Stream Grid Layout */
+        .twin-streams {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .twin-streams {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .telemetry-item {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .telemetry-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .telemetry-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* Status indicator pulse */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .status-active {
+            background-color: var(--success);
+            box-shadow: 0 0 10px var(--success);
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-inactive {
+            background-color: var(--danger);
+            box-shadow: 0 0 10px var(--danger);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
+
+        /* Visual steering wheel rotate */
+        .wheel-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 140px;
+            margin: 10px 0;
+        }
+
+        .steering-wheel {
+            width: 100px;
+            height: 100px;
+            transition: transform 0.1s ease-out;
+            fill: none;
+            stroke: var(--primary);
+            stroke-width: 6;
+            filter: drop-shadow(0 0 8px var(--primary-glow));
+        }
+
+        /* Control Sliders */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .control-header span:first-child {
+            color: var(--text-muted);
+        }
+
+        .control-header span:last-child {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .custom-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #1e293b;
+            outline: none;
+            border: 1px solid var(--border);
+        }
+
+        .custom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 0 8px rgba(6, 182, 212, 0.5);
+            transition: 0.1s;
+        }
+
+        .custom-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .e-stop-btn {
+            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+            transition: 0.2s;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .e-stop-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+        }
+
+        .e-stop-btn:active {
+            transform: translateY(1px);
+        }
+
+        /* Error/Deviation Bar */
+        .deviation-track {
+            height: 8px;
+            background: #1e293b;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .deviation-bar {
+            height: 100%;
+            width: 0;
+            background: var(--accent);
+            position: absolute;
+            left: 50%;
+            transition: 0.1s ease-out;
+        }
+
+        .center-line {
+            width: 2px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.25);
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="brand-section">
+                <h1>PiCar-X Autodrive Control Center</h1>
+                <p>Telemetry Dashboard & Real-Time Optimization System</p>
+            </div>
+            <div class="autodrive-toggle-container">
+                <span class="toggle-label" id="mode-label">AUTODRIVE OFF</span>
+                <label class="switch">
+                    <input type="checkbox" id="autodrive-checkbox" onchange="toggleAutodrive(this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- Left Side: Camera Streams -->
+            <div class="card">
+                <div class="card-title">
+                    <span>Live Video Streams</span>
+                    <span style="font-size: 12px; color: var(--text-muted);">640x480 resolution</span>
+                </div>
+                <div class="streams-container">
+                    <div class="twin-streams">
+                        <div class="stream-wrapper">
+                            <span class="stream-label">Raw Camera Feed</span>
+                            <img src="/camera.mjpg" class="stream-image" alt="Raw stream">
+                        </div>
+                        <div class="stream-wrapper">
+                            <span class="stream-label">Lane Detection Overlay</span>
+                            <img src="/stream.mjpg" class="stream-image" alt="Processed stream">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Telemetry & Calibration -->
+            <div class="streams-container">
+                <!-- Telemetry Values -->
+                <div class="card">
+                    <div class="card-title">System Telemetry</div>
+                    
+                    <div class="telemetry-grid">
+                        <div class="telemetry-item">
+                            <div class="telemetry-label">Lane Status</div>
+                            <div class="telemetry-value" id="lane-status-text" style="display:flex; align-items:center;">
+                                <span class="status-dot status-inactive" id="lane-dot"></span>
+                                <span id="lane-text">Lost</span>
+                            </div>
+                        </div>
+                        <div class="telemetry-item">
+                            <div class="telemetry-label">Motor Speed</div>
+                            <div class="telemetry-value" id="speed-value">0</div>
+                        </div>
+                        <div class="telemetry-item">
+                            <div class="telemetry-label">Steering Angle</div>
+                            <div class="telemetry-value" id="angle-value">0.0°</div>
+                        </div>
+                        <div class="telemetry-item">
+                            <div class="telemetry-label">Steering Error</div>
+                            <div class="telemetry-value" id="error-value">0.00</div>
+                        </div>
+                    </div>
+
+                    <!-- Visual Steering Wheel -->
+                    <div class="wheel-container">
+                        <svg class="steering-wheel" id="wheel-svg" viewBox="0 0 100 100">
+                            <!-- Outer Rim -->
+                            <circle cx="50" cy="50" r="42" stroke-width="6" />
+                            <!-- Center cap -->
+                            <circle cx="50" cy="50" r="10" fill="var(--primary)" />
+                            <!-- Spokes -->
+                            <line x1="50" y1="50" x2="50" y2="8" stroke-width="4" />
+                            <line x1="50" y1="50" x2="14" y2="68" stroke-width="4" />
+                            <line x1="50" y1="50" x2="86" y2="68" stroke-width="4" />
+                        </svg>
+                    </div>
+
+                    <!-- Steering Error bar -->
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Steering Offset Visualizer</span>
+                            <span id="offset-side">Centered</span>
+                        </div>
+                        <div class="deviation-track">
+                            <div class="center-line"></div>
+                            <div class="deviation-bar" id="deviation-bar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calibration Controls -->
+                <div class="card">
+                    <div class="card-title">Calibration & Safety Controls</div>
+
+                    <!-- Speed slider -->
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Autodrive Speed Limit</span>
+                            <span id="speed-limit-val">8</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="speed-slider" min="1" max="30" value="8" oninput="updateParam('speed', this.value)">
+                    </div>
+
+                    <!-- Max Angle slider -->
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Max Steering Angle</span>
+                            <span id="max-angle-val">25°</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="max-angle-slider" min="10" max="35" value="25" oninput="updateParam('max_angle', this.value)">
+                    </div>
+
+                    <!-- White Threshold slider -->
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>White Detection Cutoff</span>
+                            <span id="white-thresh-val">170</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="white-thresh-slider" min="50" max="250" value="170" oninput="updateParam('white_thresh', this.value)">
+                    </div>
+
+                    <!-- ROI Ratio slider -->
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Horizon Crop Ratio (ROI)</span>
+                            <span id="roi-ratio-val">0.54</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="roi-slider" min="0.30" max="0.80" step="0.02" value="0.54" oninput="updateParam('roi_top_ratio', this.value)">
+                    </div>
+
+                    <!-- Follow Offset slider -->
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Follow Offset (dist from line, px)</span>
+                            <span id="follow-offset-val">77</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="follow-offset-slider" min="10" max="220" step="2" value="77" oninput="updateParam('follow_offset', this.value)">
+                    </div>
+
+                    <!-- Stop Sign Trigger Size slider -->
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Stop Trigger Size (closeness)</span>
+                            <span id="stop-trigger-val">0.35</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="stop-trigger-slider" min="0.10" max="0.80" step="0.02" value="0.35" oninput="updateParam('stop_trigger', this.value)">
+                    </div>
+
+                    <!-- Camera Pan slider -->
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Camera Pan (Horizontal)</span>
+                            <span id="cam-pan-val">0°</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="cam-pan-slider" min="-35" max="35" value="0" oninput="updateParam('cam_pan', this.value)">
+                    </div>
+
+                    <!-- Camera Tilt slider -->
+                    <div class="control-group">
+                        <div class="control-header">
+                            <span>Camera Tilt (Vertical)</span>
+                            <span id="cam-tilt-val">0°</span>
+                        </div>
+                        <input type="range" class="custom-slider" id="cam-tilt-slider" min="-35" max="35" value="0" oninput="updateParam('cam_tilt', this.value)">
+                    </div>
+
+                    <button class="e-stop-btn" onclick="emergencyStop()">EMERGENCY STOP (SPACE)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autodriveActive = false;
+
+        function toggleAutodrive(checked) {
+            autodriveActive = checked;
+            const val = checked ? 1 : 0;
+            const label = document.getElementById('mode-label');
+            label.innerText = checked ? 'AUTODRIVE ON' : 'AUTODRIVE OFF';
+            label.style.color = checked ? 'var(--success)' : 'var(--text-muted)';
+            
+            fetch(`/api/set?autodrive=${val}`)
+                .then(r => r.json())
+                .catch(err => console.error("Error setting autodrive:", err));
+        }
+
+        function updateParam(name, value) {
+            if (name === 'speed') document.getElementById('speed-limit-val').innerText = value;
+            if (name === 'max_angle') document.getElementById('max-angle-val').innerText = value + '°';
+            if (name === 'white_thresh') document.getElementById('white-thresh-val').innerText = value;
+            if (name === 'roi_top_ratio') document.getElementById('roi-ratio-val').innerText = value;
+            if (name === 'follow_offset') document.getElementById('follow-offset-val').innerText = value;
+            if (name === 'stop_trigger') document.getElementById('stop-trigger-val').innerText = value;
+            if (name === 'cam_pan') document.getElementById('cam-pan-val').innerText = value + '°';
+            if (name === 'cam_tilt') document.getElementById('cam-tilt-val').innerText = value + '°';
+
+            fetch(`/api/set?${name}=${value}`)
+                .then(r => r.json())
+                .catch(err => console.error(`Error setting ${name}:`, err));
+        }
+
+        function emergencyStop() {
+            document.getElementById('autodrive-checkbox').checked = false;
+            toggleAutodrive(false);
+            fetch(`/api/set?autodrive=0&speed=0`)
+                .then(r => r.json())
+                .catch(err => console.error("Emergency stop failed:", err));
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space') {
+                event.preventDefault();
+                emergencyStop();
+            }
+        });
+
+        // Poll telemetry data
+        setInterval(() => {
+            fetch('/api/status')
+                .then(res => res.json())
+                .then(data => {
+                    const check = document.getElementById('autodrive-checkbox');
+                    if (check.checked !== data.autodrive_enabled) {
+                        check.checked = data.autodrive_enabled;
+                        const label = document.getElementById('mode-label');
+                        label.innerText = data.autodrive_enabled ? 'AUTODRIVE ON' : 'AUTODRIVE OFF';
+                        label.style.color = data.autodrive_enabled ? 'var(--success)' : 'var(--text-muted)';
+                    }
+
+                    const laneDot = document.getElementById('lane-dot');
+                    const laneText = document.getElementById('lane-text');
+                    if (data.lane_found) {
+                        laneDot.className = "status-dot status-active";
+                        laneText.innerText = "Locked";
+                        laneText.style.color = "var(--success)";
+                    } else {
+                        laneDot.className = "status-dot status-inactive";
+                        laneText.innerText = "Lost";
+                        laneText.style.color = "var(--danger)";
+                    }
+
+                    document.getElementById('speed-value').innerText = data.motor_speed;
+                    document.getElementById('angle-value').innerText = data.steering_angle.toFixed(1) + '°';
+                    
+                    const errorVal = data.steering_error;
+                    document.getElementById('error-value').innerText = errorVal.toFixed(2);
+
+                    const wheel = document.getElementById('wheel-svg');
+                    const rotation = data.steering_angle * 3;
+                    wheel.style.transform = `rotate(${rotation}deg)`;
+
+                    const bar = document.getElementById('deviation-bar');
+                    const sideLabel = document.getElementById('offset-side');
+                    if (errorVal >= 0) {
+                        bar.style.left = '50%';
+                        bar.style.width = (errorVal * 50) + '%';
+                        bar.style.background = 'var(--accent)';
+                        sideLabel.innerText = errorVal > 0.05 ? 'Offset Right' : 'Centered';
+                    } else {
+                        const pct = Math.abs(errorVal) * 50;
+                        bar.style.left = (50 - pct) + '%';
+                        bar.style.width = pct + '%';
+                        bar.style.background = 'var(--primary)';
+                        sideLabel.innerText = errorVal < -0.05 ? 'Offset Left' : 'Centered';
+                    }
+
+                    // Sync sliders if updated on backend or on initial load
+                    // Using active element check to avoid interrupting user dragging
+                    if (document.activeElement !== document.getElementById('speed-slider')) {
+                        document.getElementById('speed-slider').value = data.target_speed;
+                        document.getElementById('speed-limit-val').innerText = data.target_speed;
+                    }
+                    if (document.activeElement !== document.getElementById('max-angle-slider')) {
+                        document.getElementById('max-angle-slider').value = data.max_steering_angle;
+                        document.getElementById('max-angle-val').innerText = data.max_steering_angle + '°';
+                    }
+                    if (document.activeElement !== document.getElementById('white-thresh-slider')) {
+                        document.getElementById('white-thresh-slider').value = data.white_thresh;
+                        document.getElementById('white-thresh-val').innerText = data.white_thresh;
+                    }
+                    if (document.activeElement !== document.getElementById('roi-slider')) {
+                        document.getElementById('roi-slider').value = data.roi_top_ratio;
+                        document.getElementById('roi-ratio-val').innerText = data.roi_top_ratio;
+                    }
+                    if (data.follow_offset !== undefined && document.activeElement !== document.getElementById('follow-offset-slider')) {
+                        document.getElementById('follow-offset-slider').value = Math.round(data.follow_offset);
+                        document.getElementById('follow-offset-val').innerText = Math.round(data.follow_offset);
+                    }
+                    if (data.stop_trigger_frac !== undefined && document.activeElement !== document.getElementById('stop-trigger-slider')) {
+                        document.getElementById('stop-trigger-slider').value = data.stop_trigger_frac;
+                        document.getElementById('stop-trigger-val').innerText = data.stop_trigger_frac.toFixed(2);
+                    }
+                    if (document.activeElement !== document.getElementById('cam-pan-slider')) {
+                        document.getElementById('cam-pan-slider').value = data.camera_pan;
+                        document.getElementById('cam-pan-val').innerText = data.camera_pan + '°';
+                    }
+                    if (document.activeElement !== document.getElementById('cam-tilt-slider')) {
+                        document.getElementById('cam-tilt-slider').value = data.camera_tilt;
+                        document.getElementById('cam-tilt-val').innerText = data.camera_tilt + '°';
+                    }
+                })
+                .catch(err => console.error("Telemetry fetch error:", err));
+        }, 150);
+    </script>
+</body>
+</html>

@@ -1,53 +1,4 @@
-let autodriveActive = false;
-
-function toggleAutodrive(checked) {
-    autodriveActive = checked;
-    const val = checked ? 1 : 0;
-    const label = document.getElementById('mode-label');
-    label.innerText = checked ? 'AUTODRIVE ON' : 'AUTODRIVE OFF';
-    label.style.color = checked ? 'var(--success)' : 'var(--text-muted)';
-    
-    fetch(`/api/set?autodrive=${val}`)
-        .then(r => r.json())
-        .catch(err => console.error("Error setting autodrive:", err));
-}
-
-function updateParam(name, value) {
-    if (name === 'speed') document.getElementById('speed-limit-val').innerText = value;
-    if (name === 'max_angle') document.getElementById('max-angle-val').innerText = value + '°';
-    if (name === 'turn_frames') document.getElementById('turn-frames-val').innerText = value;
-    if (name === 'white_thresh') document.getElementById('white-thresh-val').innerText = value;
-    if (name === 'roi_top_ratio') document.getElementById('roi-ratio-val').innerText = value;
-    if (name === 'follow_offset') document.getElementById('follow-offset-val').innerText = value;
-    if (name === 'stop_trigger') document.getElementById('stop-trigger-val').innerText = value;
-    if (name === 'cam_pan') document.getElementById('cam-pan-val').innerText = value + '°';
-    if (name === 'cam_tilt') document.getElementById('cam-tilt-val').innerText = value + '°';
-    if (name === 'blue_h_min') document.getElementById('blue-h-min-val').innerText = value;
-    if (name === 'blue_h_max') document.getElementById('blue-h-max-val').innerText = value;
-    if (name === 'sign_s_min') document.getElementById('sign-s-min-val').innerText = value;
-    if (name === 'sign_v_min') document.getElementById('sign-v-min-val').innerText = value;
-
-    fetch(`/api/set?${name}=${value}`)
-        .then(r => r.json())
-        .catch(err => console.error(`Error setting ${name}:`, err));
-}
-
-function emergencyStop() {
-    document.getElementById('autodrive-checkbox').checked = false;
-    toggleAutodrive(false);
-    fetch(`/api/set?autodrive=0&speed=0`)
-        .then(r => r.json())
-        .catch(err => console.error("Emergency stop failed:", err));
-}
-
-document.addEventListener('keydown', function(event) {
-    if (event.code === 'Space') {
-        event.preventDefault();
-        emergencyStop();
-    }
-});
-
-// Poll telemetry data
+// Poll telemetry data (Relaxed to 300ms)
 setInterval(() => {
     fetch('/api/status')
         .then(res => res.json())
@@ -162,4 +113,4 @@ setInterval(() => {
             }
         })
         .catch(err => console.error("Telemetry fetch error:", err));
-}, 150);
+}, 300);

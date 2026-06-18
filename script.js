@@ -1,4 +1,36 @@
-// Poll telemetry data (Relaxed to 300ms)
+// --- Control Functions (Sent to backend) ---
+
+function updateParam(param, value) {
+    fetch(`/api/set?${param}=${value}`)
+        .catch(err => console.error("Error setting parameter:", err));
+}
+
+function toggleAutodrive(enabled) {
+    const val = enabled ? 1 : 0;
+    fetch(`/api/set?autodrive=${val}`)
+        .catch(err => console.error("Error toggling autodrive:", err));
+}
+
+function emergencyStop() {
+    // Uncheck the UI toggle
+    const check = document.getElementById('autodrive-checkbox');
+    if (check) check.checked = false;
+    
+    // Send stop command
+    toggleAutodrive(false);
+    console.log("EMERGENCY STOP TRIGGERED");
+}
+
+// Spacebar listener for Emergency Stop
+document.addEventListener('keydown', (event) => {
+    if (event.code === 'Space') {
+        event.preventDefault(); // Prevent page from scrolling down
+        emergencyStop();
+    }
+});
+
+// --- Telemetry Polling (Receives from backend) ---
+
 setInterval(() => {
     fetch('/api/status')
         .then(res => res.json())

@@ -64,7 +64,7 @@ def main():
         # ),),
         mp.Process(
             target=web_server_process,
-            args=(current_speed_shm, current_steering_shm, shm.name, frame_lock, FRAME_W, FRAME_H),
+            args=(current_speed_shm, current_steering_shm, sign_id, shm.name, frame_lock, FRAME_W, FRAME_H),
             daemon=True, name="P5-WebServer"
         )
         # Note: ultrasonic handled in main loop or separate thread

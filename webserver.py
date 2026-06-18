@@ -19,6 +19,7 @@ _frame_w = 0
 _frame_h = 0
 _speed = None
 _steering = None
+_sign = None
 
 def generate_video_feed():
     """Generator yielding JPEG frames for the MJPEG stream."""
@@ -56,29 +57,47 @@ def index():
                 body { font-family: sans-serif; background: #121212; color: #fff; text-align: center; }
                 img { max-width: 100%; border: 2px solid #333; border-radius: 8px; }
                 .telemetry { margin-top: 20px; font-size: 1.5em; }
+                .sign-box { 
+                    display: inline-block; 
+                    padding: 10px 20px; 
+                    background: #222; 
+                    border-radius: 8px; 
+                    margin-top: 10px;
+                    color: yellow;
+                    font-weight: bold;
+                }
             </style>
         </head>
         <body>
             <h1>PiCar-X Live View</h1>
             <img src="/video_feed" />
             <div class="telemetry">
-                <p>Speed: <span id="speed">0</span></p>
-                <p>Steering: <span id="steering">0</span>&deg;</p>
+                <p>Speed: <span id="speed">0</span> | Steering: <span id="steering">0</span>&deg;</p>
+                <div class="sign-box">Active Sign: <span id="sign">None 🚫</span></div>
             </div>
             <script>
+                // Map the Enum integers to readable text
+                const signMap = {
+                    0: "None 🚫",
+                    1: "LEFT ⬅️",
+                    2: "RIGHT ➡️",
+                    3: "STOP 🛑"
+                };
+
                 setInterval(() => {
                     fetch('/api/telemetry')
                         .then(r => r.json())
                         .then(data => {
                             document.getElementById('speed').innerText = data.speed.toFixed(1);
                             document.getElementById('steering').innerText = data.steering.toFixed(1);
+                            // Look up the string using the integer from the backend
+                            document.getElementById('sign').innerText = signMap[data.sign];
                         });
-                }, 100); // Poll telemetry at 10Hz
+                }, 100); 
             </script>
         </body>
     </html>
     """
-
 @app.route('/video_feed')
 def video_feed():
     return Response(generate_video_feed(), mimetype='multipart/x-mixed-replace; boundary=frame')
@@ -90,18 +109,26 @@ def telemetry():
         "steering": _steering.value
     })
 
+@app.route('/api/telemetry')
+def telemetry():
+    return jsonify({
+        "speed": _speed.value,
+        "steering": _steering.value,
+        "sign": _sign.value  # ADD THIS LINE
+    })
+
+# Update the process signature to accept the new variable
 def web_server_process(
-    speed_val, steering_val, shm_name, frame_lock, frame_w, frame_h
+    speed_val, steering_val, sign_val, shm_name, frame_lock, frame_w, frame_h
 ):
     """Entry point for Process 5."""
-    global _shm_name, _frame_lock, _frame_w, _frame_h, _speed, _steering
+    global _shm_name, _frame_lock, _frame_w, _frame_h, _speed, _steering, _sign
     _shm_name = shm_name
     _frame_lock = frame_lock
     _frame_w = frame_w
     _frame_h = frame_h
     _speed = speed_val
     _steering = steering_val
+    _sign = sign_val      # ADD THIS LINE
     
-    # Run Flask securely on all interfaces (0.0.0.0) at port 5000
-    # use_reloader=False is MANDATORY when running inside a multiprocessing Process
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)

@@ -89,60 +89,39 @@ setInterval(() => {
             else if (data.last_sign) signEl.style.color = 'var(--accent)';
             else signEl.style.color = 'var(--text-main)';
 
-            // Sync sliders
-            if (document.activeElement !== document.getElementById('speed-slider')) {
-                document.getElementById('speed-slider').value = data.target_speed;
-                document.getElementById('speed-limit-val').innerText = data.target_speed;
-            }
-            if (document.activeElement !== document.getElementById('max-angle-slider')) {
-                document.getElementById('max-angle-slider').value = data.max_steering_angle;
-                document.getElementById('max-angle-val').innerText = data.max_steering_angle + '°';
-            }
-            if (data.turn_frames !== undefined && document.activeElement !== document.getElementById('turn-frames-slider')) {
-                document.getElementById('turn-frames-slider').value = data.turn_frames;
-                document.getElementById('turn-frames-val').innerText = data.turn_frames;
-            }
-            if (document.activeElement !== document.getElementById('white-thresh-slider')) {
-                document.getElementById('white-thresh-slider').value = data.white_thresh;
-                document.getElementById('white-thresh-val').innerText = data.white_thresh;
-            }
-            if (document.activeElement !== document.getElementById('roi-slider')) {
-                document.getElementById('roi-slider').value = data.roi_top_ratio;
-                document.getElementById('roi-ratio-val').innerText = data.roi_top_ratio;
-            }
-            if (data.follow_offset !== undefined && document.activeElement !== document.getElementById('follow-offset-slider')) {
-                document.getElementById('follow-offset-slider').value = Math.round(data.follow_offset);
-                document.getElementById('follow-offset-val').innerText = Math.round(data.follow_offset);
-            }
-            if (data.stop_trigger_frac !== undefined && document.activeElement !== document.getElementById('stop-trigger-slider')) {
-                document.getElementById('stop-trigger-slider').value = data.stop_trigger_frac;
-                document.getElementById('stop-trigger-val').innerText = data.stop_trigger_frac.toFixed(2);
-            }
-            if (document.activeElement !== document.getElementById('cam-pan-slider')) {
-                document.getElementById('cam-pan-slider').value = data.camera_pan;
-                document.getElementById('cam-pan-val').innerText = data.camera_pan + '°';
-            }
-            if (document.activeElement !== document.getElementById('cam-tilt-slider')) {
-                document.getElementById('cam-tilt-slider').value = data.camera_tilt;
-                document.getElementById('cam-tilt-val').innerText = data.camera_tilt + '°';
-            }
+            // Helper function to update UI without freezing the labels
+            const syncSlider = (sliderId, labelId, serverValue, formatFn) => {
+                const slider = document.getElementById(sliderId);
+                const label = document.getElementById(labelId);
+                if (!slider || !label || serverValue === undefined) return;
+
+                if (document.activeElement === slider) {
+                    // While user is dragging, show the local slider value instantly
+                    label.innerText = formatFn ? formatFn(slider.value) : slider.value;
+                } else {
+                    // When not dragging, sync both the slider and label to the server's truth
+                    slider.value = serverValue;
+                    label.innerText = formatFn ? formatFn(serverValue) : serverValue;
+                }
+            };
+
+            // Sync all sliders dynamically
+            syncSlider('speed-slider', 'speed-limit-val', data.target_speed);
+            syncSlider('max-angle-slider', 'max-angle-val', data.max_steering_angle, v => v + '°');
+            syncSlider('turn-frames-slider', 'turn-frames-val', data.turn_frames);
+            syncSlider('white-thresh-slider', 'white-thresh-val', data.white_thresh);
+            syncSlider('roi-slider', 'roi-ratio-val', data.roi_top_ratio);
+            syncSlider('follow-offset-slider', 'follow-offset-val', data.follow_offset, v => Math.round(v));
+            syncSlider('stop-trigger-slider', 'stop-trigger-val', data.stop_trigger_frac, v => Number(v).toFixed(2));
+            syncSlider('cam-pan-slider', 'cam-pan-val', data.camera_pan, v => v + '°');
+            syncSlider('cam-tilt-slider', 'cam-tilt-val', data.camera_tilt, v => v + '°');
+            
             // HSV sync
-            if (data.blue_h_min !== undefined && document.activeElement !== document.getElementById('blue-h-min-slider')) {
-                document.getElementById('blue-h-min-slider').value = data.blue_h_min;
-                document.getElementById('blue-h-min-val').innerText = data.blue_h_min;
-            }
-            if (data.blue_h_max !== undefined && document.activeElement !== document.getElementById('blue-h-max-slider')) {
-                document.getElementById('blue-h-max-slider').value = data.blue_h_max;
-                document.getElementById('blue-h-max-val').innerText = data.blue_h_max;
-            }
-            if (data.sign_s_min !== undefined && document.activeElement !== document.getElementById('sign-s-min-slider')) {
-                document.getElementById('sign-s-min-slider').value = data.sign_s_min;
-                document.getElementById('sign-s-min-val').innerText = data.sign_s_min;
-            }
-            if (data.sign_v_min !== undefined && document.activeElement !== document.getElementById('sign-v-min-slider')) {
-                document.getElementById('sign-v-min-slider').value = data.sign_v_min;
-                document.getElementById('sign-v-min-val').innerText = data.sign_v_min;
-            }
+            syncSlider('blue-h-min-slider', 'blue-h-min-val', data.blue_h_min);
+            syncSlider('blue-h-max-slider', 'blue-h-max-val', data.blue_h_max);
+            syncSlider('sign-s-min-slider', 'sign-s-min-val', data.sign_s_min);
+            syncSlider('sign-v-min-slider', 'sign-v-min-val', data.sign_v_min);
+            
         })
         .catch(err => console.error("Telemetry fetch error:", err));
 }, 300);

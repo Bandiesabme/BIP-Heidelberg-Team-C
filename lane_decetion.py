@@ -56,7 +56,7 @@ class LaneDetector:
         self.window_margin = window_margin
         self.min_pixels = min_pixels
         self.follow_offset = (
-            follow_offset if follow_offset is not None else self.w * 0.12
+            follow_offset if follow_offset is not None else 50.0
         )
         self.estimated_lane_width = (
             estimated_lane_width if estimated_lane_width is not None else self.w * 0.55
@@ -122,8 +122,8 @@ class LaneDetector:
  
         # search the middle 60% of the frame (15% to 75%) for the center line,
         # so the far-right edge line isn't picked instead.
-        left_cut = int(self.w * 0.15)
-        right_cut = int(self.w * 0.75)
+        left_cut = int(self.w * 0.20)
+        right_cut = int(self.w * 0.80)
         mid_hist = np.zeros_like(histogram)
         mid_hist[left_cut:right_cut] = histogram[left_cut:right_cut]
  
